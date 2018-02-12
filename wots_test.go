@@ -1,1 +1,1 @@
-package wots
+package wotsp

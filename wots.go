@@ -1,6 +1,6 @@
 // Implements WOTSP-SHA2_256 as documented in the IETF XMSS draft
 // (https://datatracker.ietf.org/doc/draft-irtf-cfrg-xmss-hash-based-signatures/)
-package wots
+package wotsp
 
 type Address struct {
 	Layer      uint32
