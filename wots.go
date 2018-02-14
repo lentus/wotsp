@@ -21,29 +21,39 @@ const l = l1 + l2
 // Describes a hash address, i.e. where a hash is calculated. It is used to
 // randomize each hash function call.
 type Address struct {
-	Layer      uint32 // Index of layer in a tree (0 when not using XMSS)
-	Tree       uint64 // Index of tree in a layer (0 when not using XMSS)
-	Type       uint32 // Always 0 for W-OTS
-	OTS        uint32 // Index of OTS key pair in the tree
-	Chain      uint32 // Index of the W-OTS chain
-	Hash       uint32 // Index of the hash in a chain
-	KeyAndMask uint32 // 0 when generating a key, 1 when generating a bitmask
+	data [32]byte
 }
 
-// Returns a byte slice representation of an address
+func (a *Address) SetLayer(l uint32) {
+	binary.BigEndian.PutUint32(a.data[0:], l)
+}
+
+func (a *Address) SetTree(t uint64) {
+	binary.BigEndian.PutUint64(a.data[4:], t)
+}
+
+func (a *Address) SetType(t uint32) {
+	binary.BigEndian.PutUint32(a.data[12:], t)
+}
+
+func (a *Address) SetOTS(o uint32) {
+	binary.BigEndian.PutUint32(a.data[16:], o)
+}
+
+func (a *Address) SetChain(c uint32) {
+	binary.BigEndian.PutUint32(a.data[20:], c)
+}
+
+func (a *Address) SetHash(h uint32) {
+	binary.BigEndian.PutUint32(a.data[24:], h)
+}
+
+func (a *Address) SetKeyAndMask(km uint32) {
+	binary.BigEndian.PutUint32(a.data[28:], km)
+}
+
 func (a *Address) toBytes() []byte {
-	data := make([]byte, 32)
-
-	binary.BigEndian.PutUint32(data, a.Layer)
-	binary.BigEndian.PutUint32(data[4:], uint32(a.Tree>>32))
-	binary.BigEndian.PutUint32(data[8:], uint32(a.Tree))
-	binary.BigEndian.PutUint32(data[12:], a.Type)
-	binary.BigEndian.PutUint32(data[16:], a.OTS)
-	binary.BigEndian.PutUint32(data[20:], a.Chain)
-	binary.BigEndian.PutUint32(data[24:], a.Hash)
-	binary.BigEndian.PutUint32(data[28:], a.KeyAndMask)
-
-	return data
+	return a.data[:]
 }
 
 // Computes the base-16 representation of a binary input.
@@ -101,11 +111,11 @@ func chain(in []byte, start, steps uint8, adrs Address, seed []byte) []byte {
 	copy(out, in)
 
 	for i := start; i < start+steps && i < w; i++ {
-		adrs.Hash = uint32(i)
+		adrs.SetHash(uint32(i))
 
-		adrs.KeyAndMask = 0
+		adrs.SetKeyAndMask(0)
 		key := prf(adrs.toBytes(), seed)
-		adrs.KeyAndMask = 1
+		adrs.SetKeyAndMask(1)
 		bitmap := prf(adrs.toBytes(), seed)
 
 		for j := 0; j < n; j++ {
@@ -137,7 +147,7 @@ func GenPublicKey(seed, pubSeed []byte, adrs Address) []byte {
 	pubKey := make([]byte, l*n)
 
 	for i := 0; i < l; i++ {
-		adrs.Chain = uint32(i)
+		adrs.SetChain(uint32(i))
 		tmp := chain(privKey[i*n:], 0, w-1, adrs, pubSeed)
 		copy(pubKey[i*n:], tmp)
 	}
@@ -172,7 +182,7 @@ func Sign(msg, seed, pubSeed []byte, adrs Address) []byte {
 	// Compute signature
 	sig := make([]byte, l*n)
 	for i := 0; i < l; i++ {
-		adrs.Chain = uint32(i)
+		adrs.SetChain(uint32(i))
 		tmp := chain(privKey[i*n:], 0, lengths[i], adrs, pubSeed)
 		copy(sig[i*n:], tmp)
 	}
@@ -191,8 +201,8 @@ func PkFromSig(sig, msg, pubSeed []byte, adrs Address) []byte {
 	// Compute public key
 	pubKey := make([]byte, l*n)
 	for i := 0; i < l; i++ {
-		adrs.Chain = uint32(i)
-		tmp := chain(sig[i*n:], lengths[i], w - 1 - lengths[i], adrs, pubSeed)
+		adrs.SetChain(uint32(i))
+		tmp := chain(sig[i*n:], lengths[i], w-1-lengths[i], adrs, pubSeed)
 		copy(pubKey[i*n:], tmp)
 	}
 
