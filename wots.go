@@ -13,7 +13,6 @@ const paddingPrf = 3
 
 const n = 32
 const w = 16
-const logw = 4
 const l1 = 64
 const l2 = 3
 const l = l1 + l2
@@ -160,10 +159,10 @@ func checksum(msg []uint8) []uint8 {
 	for i := 0; i < l1; i++ {
 		csum += uint32(w - 1 - msg[i])
 	}
-	csum <<= 8 - ((l2 * logw) % 8)
+	csum <<= 4 // 8 - ((l2 * logw) % 8)
 
-	bytesLen := (l2*logw + 7) / 8
-	csumBytes := make([]byte, bytesLen)
+	// Length of the checksum is (l2*logw + 7) / 8
+	csumBytes := make([]byte, 2)
 	// Since bytesLen is always 2, we can truncate csum to a uint16.
 	binary.BigEndian.PutUint16(csumBytes, uint16(csum))
 
