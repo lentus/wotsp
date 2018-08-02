@@ -25,21 +25,26 @@ type hasher struct {
 	precompPrfPrivSeed reflect.Value
 	precompHashF       reflect.Value
 
-	// Hash function instance
-	hasher hash.Hash
-	// Hash digest of hasher
-	hasherVal reflect.Value
+	// Hash function instances
+	hasher []hash.Hash
+	// Hash digests of hasher
+	hasherVal []reflect.Value
 
 	// PRF with precomputed hash digests for pub and priv seeds
-	prfPubSeed  func(addr *Address, out []byte)
-	prfPrivSeed func(ctr []byte, out []byte)
-	hashF       func(key, inout []byte)
+	prfPubSeed  func(routineNr int, addr *Address, out []byte)
+	prfPrivSeed func(routineNr int, ctr []byte, out []byte)
+	hashF       func(routineNr int, key, inout []byte)
 }
 
-func precompute(privSeed, pubSeed []byte) *hasher {
+func precompute(privSeed, pubSeed []byte, nrRoutines int) *hasher {
 	c := new(hasher)
-	c.hasher = sha256.New()
-	c.hasherVal = reflect.ValueOf(c.hasher).Elem()
+	c.hasher = make([]hash.Hash, nrRoutines)
+	c.hasherVal = make([]reflect.Value, nrRoutines)
+
+	for i := 0; i < nrRoutines; i++ {
+		c.hasher[i] = sha256.New()
+		c.hasherVal[i] = reflect.ValueOf(c.hasher[i]).Elem()
+	}
 
 	padding := make([]byte, n)
 
@@ -49,11 +54,11 @@ func precompute(privSeed, pubSeed []byte) *hasher {
 
 	c.precompHashF = reflect.ValueOf(hashHashF).Elem()
 
-	c.hashF = func(key, inout []byte) {
-		c.hasherVal.Set(c.precompHashF)
-		c.hasher.Write(key)
-		c.hasher.Write(inout)
-		c.hasher.Sum(inout[:0])
+	c.hashF = func(routineNr int, key, inout []byte) {
+		c.hasherVal[routineNr].Set(c.precompHashF)
+		c.hasher[routineNr].Write(key)
+		c.hasher[routineNr].Write(inout)
+		c.hasher[routineNr].Sum(inout[:0])
 	}
 
 	// Set padding for prf
@@ -67,10 +72,10 @@ func precompute(privSeed, pubSeed []byte) *hasher {
 
 		c.precompPrfPrivSeed = reflect.ValueOf(hashPrfSk).Elem()
 
-		c.prfPrivSeed = func(ctr []byte, out []byte) {
-			c.hasherVal.Set(c.precompPrfPrivSeed)
-			c.hasher.Write(ctr)
-			c.hasher.Sum(out[:0]) // Must make sure that out's capacity is >= 32 bytes!
+		c.prfPrivSeed = func(routineNr int, ctr []byte, out []byte) {
+			c.hasherVal[routineNr].Set(c.precompPrfPrivSeed)
+			c.hasher[routineNr].Write(ctr)
+			c.hasher[routineNr].Sum(out[:0]) // Must make sure that out's capacity is >= 32 bytes!
 		}
 	}
 
@@ -81,10 +86,10 @@ func precompute(privSeed, pubSeed []byte) *hasher {
 
 	c.precompPrfPubSeed = reflect.ValueOf(hashPrfPub).Elem()
 
-	c.prfPubSeed = func(addr *Address, out []byte) {
-		c.hasherVal.Set(c.precompPrfPubSeed)
-		c.hasher.Write(addr.ToBytes())
-		c.hasher.Sum(out[:0]) // Must make sure that out's capacity is >= 32 bytes!
+	c.prfPubSeed = func(routineNr int, addr *Address, out []byte) {
+		c.hasherVal[routineNr].Set(c.precompPrfPubSeed)
+		c.hasher[routineNr].Write(addr.ToBytes())
+		c.hasher[routineNr].Sum(out[:0]) // Must make sure that out's capacity is >= 32 bytes!
 	}
 
 	return c

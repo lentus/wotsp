@@ -5,6 +5,8 @@ package wotsp
 import (
 	"encoding/binary"
 	"bytes"
+	"sync"
+	"runtime"
 )
 
 const n = 32
@@ -72,23 +74,68 @@ func baseW(x []byte, outlen int) []uint8 {
 // Scratch is used as a scratch pad: it is pre-allocated to prevent every call
 // to chain from allocating slices for keys and bitmask. It is used as:
 // 		scratch = key || bitmask.
-func chain(h *hasher, scratch, in, out []byte, start, steps uint8, adrs *Address) {
+func chain(h *hasher, routineNr int, scratch, in, out []byte, start, steps uint8, adrs *Address) {
 	copy(out, in)
 
 	for i := start; i < start+steps && i < w; i++ {
 		adrs.setHash(uint32(i))
 
 		adrs.setKeyAndMask(0)
-		h.prfPubSeed(adrs, scratch[:32])
+		h.prfPubSeed(routineNr, adrs, scratch[:32])
 		adrs.setKeyAndMask(1)
-		h.prfPubSeed(adrs, scratch[32:64])
+		h.prfPubSeed(routineNr, adrs, scratch[32:64])
 
 		for j := 0; j < n; j++ {
 			out[j] = out[j] ^ scratch[32+j]
 		}
 
-		h.hashF(scratch[:32], out)
+		h.hashF(routineNr, scratch[:32], out)
 	}
+}
+
+// Distributes the chains that must be computed between GOMAXPROCS goroutines.
+//
+// When fromSig is true, in contains a signature and out must be a public key;
+// in this case the routines must complete the signature chains so they use
+// lengths as start indices. If fromSig is false, we are either computing a
+// public key from a private key, or a signature from a private key, so the
+// routines use lengths as the amount of iterations to perform.
+func computeChains(h *hasher, numRoutines int, in, out []byte, lengths []uint8, adrs *Address, fromSig bool) {
+	chainsPerRoutine := (l-1)/numRoutines + 1
+
+	// Initialise scratch pad
+	scratch := make([]byte, numRoutines * 64)
+
+	wg := new(sync.WaitGroup)
+	for i := 0; i < numRoutines; i++ {
+		// Copy address structure
+		chainAdrs := new(Address)
+		copy(chainAdrs.data[:], adrs.data[:])
+
+		wg.Add(1)
+		go func(nr int, scratch []byte, adrs *Address) {
+			firstChain := nr * chainsPerRoutine
+			lastChain := firstChain + chainsPerRoutine - 1
+
+			// Make sure the last routine ends at the right chain
+			if lastChain >= l {
+				lastChain = l - 1
+			}
+
+			// Compute the hash chains
+			for j := firstChain; j <= lastChain; j++ {
+				adrs.setChain(uint32(j))
+				if fromSig {
+					chain(h, nr, scratch, in[j*n:(j+1)*n], out[j*n:(j+1)*n], lengths[j], w-1-lengths[j], adrs)
+				} else {
+					chain(h, nr, scratch, in[j*n:(j+1)*n], out[j*n:(j+1)*n], 0, lengths[j], adrs)
+				}
+			}
+			wg.Done()
+		}(i, scratch[i*64:(i+1)*64], chainAdrs)
+	}
+
+	wg.Wait()
 }
 
 // Expands a 32-byte seed into an (l*n)-byte private key.
@@ -98,7 +145,7 @@ func expandSeed(h *hasher) []byte {
 
 	for i := 0; i < l; i++ {
 		binary.BigEndian.PutUint16(ctr[30:], uint16(i))
-		h.prfPrivSeed(ctr, privKey[i*n:])
+		h.prfPrivSeed(0, ctr, privKey[i*n:])
 	}
 
 	return privKey
@@ -106,16 +153,19 @@ func expandSeed(h *hasher) []byte {
 
 // Computes the public key that corresponds to the expanded seed.
 func GenPublicKey(seed, pubSeed []byte, adrs *Address) []byte {
-	h := precompute(seed, pubSeed)
+	numRoutines := runtime.GOMAXPROCS(-1)
+	h := precompute(seed, pubSeed, numRoutines)
 
 	privKey := expandSeed(h)
-	scratch := make([]byte, 64)
+
+	// Initialise list of chain lengths for full chains
+	lengths := make([]uint8, l)
+	for i := range lengths {
+		lengths[i] = w-1
+	}
 
 	pubKey := make([]byte, l*n)
-	for i := 0; i < l; i++ {
-		adrs.setChain(uint32(i))
-		chain(h, scratch, privKey[i*n:], pubKey[i*n:(i+1)*n], 0, w-1, adrs)
-	}
+	computeChains(h, numRoutines, privKey, pubKey, lengths, adrs, false)
 
 	return pubKey
 }
@@ -137,39 +187,33 @@ func checksum(msg []uint8) []uint8 {
 
 // Signs message msg using the private key generated using the given seed.
 func Sign(msg, seed, pubSeed []byte, adrs *Address) []byte {
-	h := precompute(seed, pubSeed)
+	numRoutines := runtime.GOMAXPROCS(-1)
+	h := precompute(seed, pubSeed, numRoutines)
 
 	privKey := expandSeed(h)
 	lengths := baseW(msg, l1)
-	scratch := make([]byte, 64)
 
 	csum := checksum(lengths)
 	lengths = append(lengths, csum...)
 
 	sig := make([]byte, l*n)
-	for i := 0; i < l; i++ {
-		adrs.setChain(uint32(i))
-		chain(h, scratch, privKey[i*n:], sig[i*n:(i+1)*n], 0, lengths[i], adrs)
-	}
+	computeChains(h, numRoutines, privKey, sig, lengths, adrs, false)
 
 	return sig
 }
 
 // Generates a public key from the given signature
 func PkFromSig(sig, msg, pubSeed []byte, adrs *Address) []byte {
-	h := precompute(nil, pubSeed)
+	numRoutines := runtime.GOMAXPROCS(-1)
+	h := precompute(nil, pubSeed, numRoutines)
 
 	lengths := baseW(msg, l1)
-	scratch := make([]byte, 64)
 
 	csum := checksum(lengths)
 	lengths = append(lengths, csum...)
 
 	pubKey := make([]byte, l*n)
-	for i := 0; i < l; i++ {
-		adrs.setChain(uint32(i))
-		chain(h, scratch, sig[i*n:], pubKey[i*n:(i+1)*n], lengths[i], w-1-lengths[i], adrs)
-	}
+	computeChains(h, numRoutines, sig, pubKey, lengths, adrs, true)
 
 	return pubKey
 }
