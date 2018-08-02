@@ -33,7 +33,7 @@ func SetMode(m Mode) {
 		logW = uint(2)
 		l1 = 128
 		l2 = 5
-	case W16:
+		break
 	default:
 		w = uint8(16)
 		logW = uint(4)
