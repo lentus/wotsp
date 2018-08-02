@@ -1,10 +1,10 @@
 package wotsp
 
 import (
-	"reflect"
-	"hash"
 	"crypto/sha256"
 	"encoding/binary"
+	"hash"
+	"reflect"
 )
 
 // The hasher struct implements the W-OTS+ functions PRF and HashF efficiently
@@ -41,7 +41,7 @@ func precompute(privSeed, pubSeed []byte) *hasher {
 	c.hasher = sha256.New()
 	c.hasherVal = reflect.ValueOf(c.hasher).Elem()
 
-	padding := make([]byte, n)
+	padding := make([]byte, N)
 
 	// While padding is all zero, precompute hashF
 	hashHashF := sha256.New()
@@ -57,7 +57,7 @@ func precompute(privSeed, pubSeed []byte) *hasher {
 	}
 
 	// Set padding for prf
-	binary.BigEndian.PutUint16(padding[n-2:], uint16(3))
+	binary.BigEndian.PutUint16(padding[N-2:], uint16(3))
 
 	if privSeed != nil {
 		// Precompute prf with private seed (not used in PkFromSig)
@@ -89,4 +89,3 @@ func precompute(privSeed, pubSeed []byte) *hasher {
 
 	return c
 }
-
