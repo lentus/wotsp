@@ -1,5 +1,5 @@
-// Implements WOTSP-SHA2_256 as documented in the IETF XMSS draft
-// (https://datatracker.ietf.org/doc/draft-irtf-cfrg-xmss-hash-based-signatures/)
+// Implements WOTSP-SHA2_256 as documented in RFC 8391
+// (https://datatracker.ietf.org/doc/rfc8391/)
 package wotsp
 
 import (
@@ -8,13 +8,42 @@ import (
 )
 
 const n = 32
-const w = 16
-const l1 = 64
-const l2 = 3
-const l = l1 + l2
+var w = uint8(16)
+var logW = uint(4)
+var l1 = 64
+var l2 = 3
+var l = l1 + l2
+
+type Mode int
+const (
+	W4 Mode = iota
+	W16
+)
+
+// Sets all internal parameters according to the given mode of operation. The
+// available parameter sets include w = 4 and w = 16. The default, which is used
+// when this function is not called, is w = 16. See RFC 8391 for details on the
+// different parameter sets.
+func SetMode(m Mode) {
+	switch m {
+	case W4:
+		w = uint8(4)
+		logW = uint(2)
+		l1 = 128
+		l2 = 5
+	case W16:
+	default:
+		w = uint8(16)
+		logW = uint(4)
+		l1 = 64
+		l2 = 3
+	}
+
+	l = l1+l2
+}
 
 // Computes the base-16 representation of a binary input.
-func base16(x []byte, outlen int) []uint8 {
+func baseW(x []byte, outlen int) []uint8 {
 	var total byte
 	in := 0
 	out := 0
@@ -28,8 +57,8 @@ func base16(x []byte, outlen int) []uint8 {
 			bits += 8
 		}
 
-		bits -= 4
-		baseW[out] = uint8((total >> bits) & byte(15))
+		bits -= logW
+		baseW[out] = uint8((total >> bits) & byte(w-1))
 		out++
 	}
 
@@ -39,25 +68,26 @@ func base16(x []byte, outlen int) []uint8 {
 // Performs the chaining operation using an n-byte input and n-byte seed.
 // Assumes the input is the <start>-th element in the chain, and performs
 // <steps> iterations.
-func chain(h *hasher, in, out []byte, start, steps uint8, adrs *Address) {
+//
+// Scratch is used as a scratch pad: it is pre-allocated to prevent every call
+// to chain from allocating slices for keys and bitmask. It is used as:
+// 		scratch = key || bitmask.
+func chain(h *hasher, scratch, in, out []byte, start, steps uint8, adrs *Address) {
 	copy(out, in)
-
-	key := make([]byte, 32)
-	bitmap := make([]byte, 32)
 
 	for i := start; i < start+steps && i < w; i++ {
 		adrs.setHash(uint32(i))
 
 		adrs.setKeyAndMask(0)
-		h.prfPubSeed(adrs, key)
+		h.prfPubSeed(adrs, scratch[:32])
 		adrs.setKeyAndMask(1)
-		h.prfPubSeed(adrs, bitmap)
+		h.prfPubSeed(adrs, scratch[32:64])
 
 		for j := 0; j < n; j++ {
-			out[j] = out[j] ^ bitmap[j]
+			out[j] = out[j] ^ scratch[32+j]
 		}
 
-		h.hashF(key, out)
+		h.hashF(scratch[:32], out)
 	}
 }
 
@@ -79,11 +109,12 @@ func GenPublicKey(seed, pubSeed []byte, adrs *Address) []byte {
 	h := precompute(seed, pubSeed)
 
 	privKey := expandSeed(h)
-	pubKey := make([]byte, l*n)
+	scratch := make([]byte, 64)
 
+	pubKey := make([]byte, l*n)
 	for i := 0; i < l; i++ {
 		adrs.setChain(uint32(i))
-		chain(h, privKey[i*n:], pubKey[i*n:(i+1)*n],0, w-1, adrs)
+		chain(h, scratch, privKey[i*n:], pubKey[i*n:(i+1)*n], 0, w-1, adrs)
 	}
 
 	return pubKey
@@ -94,14 +125,14 @@ func checksum(msg []uint8) []uint8 {
 	for i := 0; i < l1; i++ {
 		csum += uint32(w - 1 - msg[i])
 	}
-	csum <<= 4 // 8 - ((l2 * logw) % 8)
+	csum <<= 8 - ((uint(l2) * logW) % 8)
 
 	// Length of the checksum is (l2*logw + 7) / 8
 	csumBytes := make([]byte, 2)
 	// Since bytesLen is always 2, we can truncate csum to a uint16.
 	binary.BigEndian.PutUint16(csumBytes, uint16(csum))
 
-	return base16(csumBytes, l2)
+	return baseW(csumBytes, l2)
 }
 
 // Signs message msg using the private key generated using the given seed.
@@ -109,17 +140,16 @@ func Sign(msg, seed, pubSeed []byte, adrs *Address) []byte {
 	h := precompute(seed, pubSeed)
 
 	privKey := expandSeed(h)
-	lengths := base16(msg, l1)
+	lengths := baseW(msg, l1)
+	scratch := make([]byte, 64)
 
-	// Compute checksum
 	csum := checksum(lengths)
 	lengths = append(lengths, csum...)
 
-	// Compute signature
 	sig := make([]byte, l*n)
 	for i := 0; i < l; i++ {
 		adrs.setChain(uint32(i))
-		chain(h, privKey[i*n:], sig[i*n:(i+1)*n], 0, lengths[i], adrs)
+		chain(h, scratch, privKey[i*n:], sig[i*n:(i+1)*n], 0, lengths[i], adrs)
 	}
 
 	return sig
@@ -129,17 +159,16 @@ func Sign(msg, seed, pubSeed []byte, adrs *Address) []byte {
 func PkFromSig(sig, msg, pubSeed []byte, adrs *Address) []byte {
 	h := precompute(nil, pubSeed)
 
-	lengths := base16(msg, l1)
+	lengths := baseW(msg, l1)
+	scratch := make([]byte, 64)
 
-	// Compute checksum
 	csum := checksum(lengths)
 	lengths = append(lengths, csum...)
 
-	// Compute public key
 	pubKey := make([]byte, l*n)
 	for i := 0; i < l; i++ {
 		adrs.setChain(uint32(i))
-		chain(h, sig[i*n:], pubKey[i*n:(i+1)*n], lengths[i], w-1-lengths[i], adrs)
+		chain(h, scratch, sig[i*n:], pubKey[i*n:(i+1)*n], lengths[i], w-1-lengths[i], adrs)
 	}
 
 	return pubKey
