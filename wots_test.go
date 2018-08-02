@@ -121,6 +121,7 @@ func TestW4(t *testing.T) {
 
 func BenchmarkGenPublicKey(b *testing.B) {
 	b.ReportAllocs()
+	SetMode(W16)
 	for i := 0; i < b.N; i++ {
 		_ = GenPublicKey(testdata.Seed, testdata.PubSeed, &Address{})
 	}
@@ -128,6 +129,7 @@ func BenchmarkGenPublicKey(b *testing.B) {
 
 func BenchmarkSign(b *testing.B) {
 	b.ReportAllocs()
+	SetMode(W16)
 	for i := 0; i < b.N; i++ {
 		_ = Sign(testdata.Message, testdata.Seed, testdata.PubSeed, &Address{})
 	}
@@ -135,6 +137,7 @@ func BenchmarkSign(b *testing.B) {
 
 func BenchmarkPkFromSig(b *testing.B) {
 	b.ReportAllocs()
+	SetMode(W16)
 	for i := 0; i < b.N; i++ {
 		_ = PkFromSig(testdata.Signature, testdata.Message, testdata.PubSeed, &Address{})
 	}
