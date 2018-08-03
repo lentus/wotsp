@@ -15,21 +15,24 @@ const N = 32
 
 // GenPublicKey computes the public key that corresponds to the expanded seed.
 func GenPublicKey(seed []byte, opts Opts) (pk []byte, err error) {
-	h := precompute(seed, opts.PubSeed)
+	h, err := newHasher(seed, opts)
+	if err != nil {
+		return
+	}
 
 	params, err := opts.Mode.params()
 	if err != nil {
 		return
 	}
 
-	privKey := params.expandSeed(h)
+	privKey := h.expandSeed()
 	scratch := make([]byte, 64)
 
 	pk = make([]byte, params.l*N)
 	addr := opts.Address
 	for i := 0; i < params.l; i++ {
 		addr.setChain(uint32(i))
-		params.chain(h, scratch, privKey[i*N:], pk[i*N:(i+1)*N], 0, params.w-1, &addr)
+		h.chain(scratch, privKey[i*N:], pk[i*N:(i+1)*N], 0, params.w-1, &addr)
 	}
 
 	return
@@ -43,20 +46,23 @@ func Sign(msg, seed []byte, opts Opts) (sig []byte, err error) {
 		return
 	}
 
-	h := precompute(seed, opts.PubSeed)
+	h, err := newHasher(seed, opts)
+	if err != nil {
+		return
+	}
 
-	privKey := params.expandSeed(h)
-	lengths := params.baseW(msg, params.l1)
+	privKey := h.expandSeed()
+	lengths := h.baseW(msg, h.params.l1)
 	scratch := make([]byte, 64)
 
-	csum := params.checksum(lengths)
+	csum := h.checksum(lengths)
 	lengths = append(lengths, csum...)
 
 	sig = make([]byte, params.l*N)
 	addr := opts.Address
 	for i := 0; i < params.l; i++ {
 		addr.setChain(uint32(i))
-		params.chain(h, scratch, privKey[i*N:], sig[i*N:(i+1)*N], 0, lengths[i], &addr)
+		h.chain(scratch, privKey[i*N:], sig[i*N:(i+1)*N], 0, lengths[i], &addr)
 	}
 
 	return
@@ -69,19 +75,22 @@ func PublicKeyFromSig(sig, msg []byte, opts Opts) (pk []byte, err error) {
 		return
 	}
 
-	h := precompute(nil, opts.PubSeed)
+	h, err := newHasher(nil, opts)
+	if err != nil {
+		return
+	}
 
-	lengths := params.baseW(msg, params.l1)
+	lengths := h.baseW(msg, h.params.l1)
 	scratch := make([]byte, 64)
 
-	csum := params.checksum(lengths)
+	csum := h.checksum(lengths)
 	lengths = append(lengths, csum...)
 
 	pk = make([]byte, params.l*N)
 	addr := opts.Address
 	for i := 0; i < params.l; i++ {
 		addr.setChain(uint32(i))
-		params.chain(h, scratch, sig[i*N:], pk[i*N:(i+1)*N], lengths[i], params.w-1-lengths[i], &addr)
+		h.chain(scratch, sig[i*N:], pk[i*N:(i+1)*N], lengths[i], params.w-1-lengths[i], &addr)
 	}
 
 	return
