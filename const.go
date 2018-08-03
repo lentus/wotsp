@@ -2,15 +2,17 @@ package wotsp
 
 // constants for WOTPS signatures for both W4 and W16 modes.
 const (
-	W4PublicKeyBytes = 2144        // size of publis key
-	W4SecretKeyBytes = W4SeedBytes // TODO should this be the size of the internal private key, or the seed?
-	W4Bytes          = 2144        // size of signatures
-	W4SeedBytes      = 32
-	W4PubSeedBytes   = 32
+	W4PublicKeyBytes = 4256        // size of public key
+	W4SecretKeyBytes = W4SeedBytes // size of the secret key, which is the seed
+	W4Bytes          = 4256        // size of signatures
+	W4SeedBytes      = 32          // size of the secret seed
+	W4PubSeedBytes   = 32          // size of the public seed
+	W4AddressBytes   = 32          // size of the address value
 
 	W16PublicKeyBytes = 2144
 	W16SecretKeyBytes = W16SeedBytes
-	W16Bytes          = 4256
+	W16Bytes          = 2144
 	W16SeedBytes      = 32
 	W16PubSeedBytes   = 32
+	W16AddressBytes   = 32
 )
