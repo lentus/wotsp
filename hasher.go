@@ -36,7 +36,7 @@ type hasher struct {
 
 // newHasher creates a new hasher instance for computations, and performs some
 // precomputations to improve performance.
-func newHasher(privSeed []byte, opts Opts) (h *hasher, err error) {
+func newHasher(privSeed, pubSeed []byte, opts Opts) (h *hasher, err error) {
 	h = new(hasher)
 
 	if h.params, err = opts.Mode.params(); err != nil {
@@ -69,7 +69,7 @@ func newHasher(privSeed []byte, opts Opts) (h *hasher, err error) {
 	// Precompute prf with public seed
 	hashPrfPub := sha256.New()
 	hashPrfPub.Write(padding)
-	hashPrfPub.Write(opts.PubSeed)
+	hashPrfPub.Write(pubSeed)
 
 	h.precompPrfPubSeed = reflect.ValueOf(hashPrfPub).Elem()
 

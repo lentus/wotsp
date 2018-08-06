@@ -14,8 +14,8 @@ import (
 const N = 32
 
 // GenPublicKey computes the public key that corresponds to the expanded seed.
-func GenPublicKey(seed []byte, opts Opts) (pk []byte, err error) {
-	h, err := newHasher(seed, opts)
+func GenPublicKey(seed, pubSeed []byte, opts Opts) (pk []byte, err error) {
+	h, err := newHasher(seed, pubSeed, opts)
 	if err != nil {
 		return
 	}
@@ -40,13 +40,13 @@ func GenPublicKey(seed []byte, opts Opts) (pk []byte, err error) {
 
 // Sign generates the signature of msg using the private key generated using the
 // given seed.
-func Sign(msg, seed []byte, opts Opts) (sig []byte, err error) {
+func Sign(msg, seed, pubSeed []byte, opts Opts) (sig []byte, err error) {
 	params, err := opts.Mode.params()
 	if err != nil {
 		return
 	}
 
-	h, err := newHasher(seed, opts)
+	h, err := newHasher(seed, pubSeed, opts)
 	if err != nil {
 		return
 	}
@@ -69,13 +69,13 @@ func Sign(msg, seed []byte, opts Opts) (sig []byte, err error) {
 }
 
 // PublicKeyFromSig generates a public key from the given signature.
-func PublicKeyFromSig(sig, msg []byte, opts Opts) (pk []byte, err error) {
+func PublicKeyFromSig(sig, msg, pubSeed []byte, opts Opts) (pk []byte, err error) {
 	params, err := opts.Mode.params()
 	if err != nil {
 		return
 	}
 
-	h, err := newHasher(nil, opts)
+	h, err := newHasher(nil, pubSeed, opts)
 	if err != nil {
 		return
 	}
@@ -97,8 +97,8 @@ func PublicKeyFromSig(sig, msg []byte, opts Opts) (pk []byte, err error) {
 }
 
 // Verify checks whether the signature is correct for the given message.
-func Verify(pk, sig, msg []byte, opts Opts) (bool, error) {
-	sig, err := PublicKeyFromSig(sig, msg, opts)
+func Verify(pk, sig, msg, pubSeed []byte, opts Opts) (bool, error) {
+	sig, err := PublicKeyFromSig(sig, msg, pubSeed, opts)
 	if err != nil {
 		return false, err
 	}

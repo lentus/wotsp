@@ -42,7 +42,10 @@ func TestAddressToBytes(t *testing.T) {
 }
 
 func TestGenPublicKey(t *testing.T) {
-	pubKey, err := GenPublicKey(testdata.Seed, Opts{PubSeed: testdata.PubSeed})
+	var opts Opts
+	opts.Mode = W16 // explicit, in case the default ever changes
+
+	pubKey, err := GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
 	noerr(t, err)
 
 	if !bytes.Equal(pubKey, testdata.PubKey) {
@@ -51,7 +54,10 @@ func TestGenPublicKey(t *testing.T) {
 }
 
 func TestSign(t *testing.T) {
-	signature, err := Sign(testdata.Message, testdata.Seed, Opts{PubSeed: testdata.PubSeed})
+	var opts Opts
+	opts.Mode = W16 // explicit, in case the default ever changes
+
+	signature, err := Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
 	noerr(t, err)
 
 	if !bytes.Equal(signature, testdata.Signature) {
@@ -60,7 +66,10 @@ func TestSign(t *testing.T) {
 }
 
 func TestPkFromSig(t *testing.T) {
-	pubKey, err := PublicKeyFromSig(testdata.Signature, testdata.Message, Opts{PubSeed: testdata.PubSeed})
+	var opts Opts
+	opts.Mode = W16 // explicit, in case the default ever changes
+
+	pubKey, err := PublicKeyFromSig(testdata.Signature, testdata.Message, testdata.PubSeed, opts)
 	noerr(t, err)
 
 	if !bytes.Equal(pubKey, testdata.PubKey) {
@@ -69,7 +78,10 @@ func TestPkFromSig(t *testing.T) {
 }
 
 func TestVerify(t *testing.T) {
-	ok, err := Verify(testdata.PubKey, testdata.Signature, testdata.Message, Opts{PubSeed: testdata.PubSeed})
+	var opts Opts
+	opts.Mode = W16 // explicit, in case the default ever changes
+
+	ok, err := Verify(testdata.PubKey, testdata.Signature, testdata.Message, testdata.PubSeed, opts)
 	noerr(t, err)
 
 	if !ok {
@@ -80,26 +92,26 @@ func TestVerify(t *testing.T) {
 func TestAll(t *testing.T) {
 	var opts Opts
 	opts.Mode = W16 // explicit, in case the default ever changes
-	opts.PubSeed = make([]byte, 32)
 
 	seed := make([]byte, 32)
 	_, err := rand.Read(seed)
 	noerr(t, err)
 
-	_, err = rand.Read(opts.PubSeed)
+	pubSeed := make([]byte, 32)
+	_, err = rand.Read(pubSeed)
 	noerr(t, err)
 
 	msg := make([]byte, 32)
 	_, err = rand.Read(msg)
 	noerr(t, err)
 
-	pubKey, err := GenPublicKey(seed, opts)
+	pubKey, err := GenPublicKey(seed, pubSeed, opts)
 	noerr(t, err)
 
-	signed, err := Sign(msg, seed, opts)
+	signed, err := Sign(msg, seed, pubSeed, opts)
 	noerr(t, err)
 
-	valid, err := Verify(pubKey, signed, msg, opts)
+	valid, err := Verify(pubKey, signed, msg, pubSeed, opts)
 	noerr(t, err)
 	if !valid {
 		t.Fail()
@@ -110,26 +122,26 @@ func TestW4(t *testing.T) {
 
 	var opts Opts
 	opts.Mode = W4
-	opts.PubSeed = make([]byte, 32)
 
 	seed := make([]byte, 32)
 	_, err := rand.Read(seed)
 	noerr(t, err)
 
-	_, err = rand.Read(opts.PubSeed)
+	pubSeed := make([]byte, 32)
+	_, err = rand.Read(pubSeed)
 	noerr(t, err)
 
 	msg := make([]byte, 32)
 	_, err = rand.Read(msg)
 	noerr(t, err)
 
-	pubKey, err := GenPublicKey(seed, opts)
+	pubKey, err := GenPublicKey(seed, pubSeed, opts)
 	noerr(t, err)
 
-	signed, err := Sign(msg, seed, opts)
+	signed, err := Sign(msg, seed, pubSeed, opts)
 	noerr(t, err)
 
-	valid, err := Verify(pubKey, signed, msg, opts)
+	valid, err := Verify(pubKey, signed, msg, pubSeed, opts)
 	noerr(t, err)
 	if !valid {
 		t.Fail()
@@ -141,11 +153,10 @@ func BenchmarkGenPublicKey(b *testing.B) {
 
 	opts := Opts{
 		Mode:    W16,
-		PubSeed: testdata.PubSeed,
 	}
 
 	for i := 0; i < b.N; i++ {
-		GenPublicKey(testdata.Seed, opts)
+		GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
 	}
 }
 
@@ -154,11 +165,10 @@ func BenchmarkSign(b *testing.B) {
 
 	opts := Opts{
 		Mode:    W16,
-		PubSeed: testdata.PubSeed,
 	}
 
 	for i := 0; i < b.N; i++ {
-		Sign(testdata.Message, testdata.Seed, opts)
+		Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
 	}
 }
 
@@ -167,11 +177,10 @@ func BenchmarkPkFromSig(b *testing.B) {
 
 	opts := Opts{
 		Mode:    W16,
-		PubSeed: testdata.PubSeed,
 	}
 
 	for i := 0; i < b.N; i++ {
-		PublicKeyFromSig(testdata.Signature, testdata.Message, opts)
+		PublicKeyFromSig(testdata.Signature, testdata.Message, testdata.PubSeed, opts)
 	}
 }
 
@@ -180,11 +189,10 @@ func BenchmarkW4GenPublicKey(b *testing.B) {
 
 	opts := Opts{
 		Mode:    W4,
-		PubSeed: testdata.PubSeed,
 	}
 
 	for i := 0; i < b.N; i++ {
-		GenPublicKey(testdata.Seed, opts)
+		GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
 	}
 }
 
@@ -193,11 +201,10 @@ func BenchmarkW4Sign(b *testing.B) {
 
 	opts := Opts{
 		Mode:    W4,
-		PubSeed: testdata.PubSeed,
 	}
 
 	for i := 0; i < b.N; i++ {
-		Sign(testdata.Message, testdata.Seed, opts)
+		Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
 	}
 }
 
@@ -206,10 +213,9 @@ func BenchmarkW4PkFromSig(b *testing.B) {
 
 	opts := Opts{
 		Mode:    W16,
-		PubSeed: testdata.PubSeed,
 	}
 
 	for i := 0; i < b.N; i++ {
-		PublicKeyFromSig(testdata.SignatureW4, testdata.Message, opts)
+		PublicKeyFromSig(testdata.SignatureW4, testdata.Message, testdata.PubSeed, opts)
 	}
 }

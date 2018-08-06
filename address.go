@@ -1,6 +1,9 @@
 package wotsp
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"fmt"
+)
 
 // Describes a hash address, i.e. where a hash is calculated. It is used to
 // randomize each hash function call.
@@ -38,4 +41,15 @@ func (a *Address) setKeyAndMask(km uint32) {
 
 func (a *Address) ToBytes() []byte {
 	return a.data[:]
+}
+
+func AddressFromBytes(data []byte) (a Address, err error) {
+	if len(data) != 32 {
+		err = fmt.Errorf("raw address must have length 32 (has length %d)", len(data))
+		return
+	}
+
+	copy(a.data[:], data)
+
+	return
 }
