@@ -212,7 +212,7 @@ func BenchmarkW4PkFromSig(b *testing.B) {
 	b.ReportAllocs()
 
 	opts := Opts{
-		Mode:    W16,
+		Mode:    W4,
 	}
 
 	for i := 0; i < b.N; i++ {
