@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/Re0h/wotsp.svg?branch=master)](https://travis-ci.org/Re0h/wotsp) [![Go Report Card](https://goreportcard.com/badge/github.com/lentus/wotsp)](https://goreportcard.com/report/github.com/lentus/wotsp)
+[![Build Status](https://travis-ci.org/Re0h/wotsp.svg?branch=concurrent)](https://travis-ci.org/Re0h/wotsp) [![Go Report Card](https://goreportcard.com/badge/github.com/lentus/wotsp)](https://goreportcard.com/report/github.com/lentus/wotsp)
 
 # W-OTS+
 A Go implementation of the Winternitz OTS (W-OTS+), as described in [RFC8391](https://datatracker.ietf.org/doc/rfc8391/).
