@@ -13,10 +13,10 @@ type Opts struct {
 
 	// Concurrency specifies the amount of goroutines to use for WOTS
 	// operations. Concurrency follows the following logic for n:
-	//	n > 0: divide chains over n goroutines.
+	//  n > 0: divide chains over n goroutines.
 	//  n == 0: default, use a single goroutine
 	//  n < 0: automatically determine the number of goroutines based on
-	//		   runtime.NumCPU or runtime.GOMAXPROX(-1), whichever is lower.
+	//         runtime.NumCPU or runtime.GOMAXPROX(-1), whichever is lower.
 	Concurrency int
 }
 
@@ -36,7 +36,7 @@ func (o Opts) routines() int {
 		return 1
 	}
 
-	if o.Concurrency >= 0 {
+	if o.Concurrency > 0 {
 		return o.Concurrency
 	}
 
