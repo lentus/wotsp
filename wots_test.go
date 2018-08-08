@@ -150,7 +150,6 @@ func TestW4(t *testing.T) {
 }
 
 func BenchmarkWOTSP(b *testing.B) {
-
 	for _, mode := range []Mode{W4, W16} {
 		runBenches(b, mode)
 	}
