@@ -16,10 +16,6 @@ func noerr(t *testing.T, err error) {
 	}
 }
 
-// used by the benchmarks as setAlloc values
-var noAlloc = func(b *testing.B) {}
-var withAlloc = func(b *testing.B) { b.ReportAllocs() }
-
 func TestAddressToBytes(t *testing.T) {
 	a := Address{}
 	a.SetLayer(0x10111119)
