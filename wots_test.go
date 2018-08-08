@@ -152,7 +152,7 @@ func BenchmarkGenPublicKey(b *testing.B) {
 	b.ReportAllocs()
 
 	opts := Opts{
-		Mode:    W16,
+		Mode: W16,
 	}
 
 	for i := 0; i < b.N; i++ {
@@ -164,7 +164,7 @@ func BenchmarkSign(b *testing.B) {
 	b.ReportAllocs()
 
 	opts := Opts{
-		Mode:    W16,
+		Mode: W16,
 	}
 
 	for i := 0; i < b.N; i++ {
@@ -176,7 +176,7 @@ func BenchmarkPkFromSig(b *testing.B) {
 	b.ReportAllocs()
 
 	opts := Opts{
-		Mode:    W16,
+		Mode: W16,
 	}
 
 	for i := 0; i < b.N; i++ {
@@ -188,7 +188,7 @@ func BenchmarkW4GenPublicKey(b *testing.B) {
 	b.ReportAllocs()
 
 	opts := Opts{
-		Mode:    W4,
+		Mode: W4,
 	}
 
 	for i := 0; i < b.N; i++ {
@@ -200,7 +200,7 @@ func BenchmarkW4Sign(b *testing.B) {
 	b.ReportAllocs()
 
 	opts := Opts{
-		Mode:    W4,
+		Mode: W4,
 	}
 
 	for i := 0; i < b.N; i++ {
@@ -212,7 +212,85 @@ func BenchmarkW4PkFromSig(b *testing.B) {
 	b.ReportAllocs()
 
 	opts := Opts{
-		Mode:    W4,
+		Mode: W4,
+	}
+
+	for i := 0; i < b.N; i++ {
+		PublicKeyFromSig(testdata.SignatureW4, testdata.Message, testdata.PubSeed, opts)
+	}
+}
+
+func BenchmarkConcurrentGenPublicKey(b *testing.B) {
+	b.ReportAllocs()
+
+	opts := Opts{
+		Mode:        W16,
+		Concurrency: -1,
+	}
+
+	for i := 0; i < b.N; i++ {
+		GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
+	}
+}
+
+func BenchmarkConcurrentSign(b *testing.B) {
+	b.ReportAllocs()
+
+	opts := Opts{
+		Mode:        W16,
+		Concurrency: -1,
+	}
+
+	for i := 0; i < b.N; i++ {
+		Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
+	}
+}
+
+func BenchmarkConcurrentPkFromSig(b *testing.B) {
+	b.ReportAllocs()
+
+	opts := Opts{
+		Mode:        W16,
+		Concurrency: -1,
+	}
+
+	for i := 0; i < b.N; i++ {
+		PublicKeyFromSig(testdata.Signature, testdata.Message, testdata.PubSeed, opts)
+	}
+}
+
+func BenchmarkConcurrentW4GenPublicKey(b *testing.B) {
+	b.ReportAllocs()
+
+	opts := Opts{
+		Mode:        W4,
+		Concurrency: -1,
+	}
+
+	for i := 0; i < b.N; i++ {
+		GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
+	}
+}
+
+func BenchmarkConcurrentW4Sign(b *testing.B) {
+	b.ReportAllocs()
+
+	opts := Opts{
+		Mode:        W4,
+		Concurrency: -1,
+	}
+
+	for i := 0; i < b.N; i++ {
+		Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
+	}
+}
+
+func BenchmarkConcurrentW4PkFromSig(b *testing.B) {
+	b.ReportAllocs()
+
+	opts := Opts{
+		Mode:        W4,
+		Concurrency: -1,
 	}
 
 	for i := 0; i < b.N; i++ {

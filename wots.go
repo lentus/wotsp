@@ -14,26 +14,26 @@ import (
 const N = 32
 
 // GenPublicKey computes the public key that corresponds to the expanded seed.
-func GenPublicKey(seed, pubSeed []byte, opts Opts) (pk []byte, err error) {
-	h, err := newHasher(seed, pubSeed, opts)
-	if err != nil {
-		return
-	}
-
+func GenPublicKey(seed, pubSeed []byte, opts Opts) (pubKey []byte, err error) {
 	params, err := opts.Mode.params()
 	if err != nil {
 		return
 	}
 
-	privKey := h.expandSeed()
-	scratch := make([]byte, 64)
+	numRoutines := opts.routines()
+	h, err := newHasher(seed, pubSeed, opts, numRoutines)
 
-	pk = make([]byte, params.l*N)
-	addr := opts.Address
-	for i := 0; i < params.l; i++ {
-		addr.setChain(uint32(i))
-		h.chain(scratch, privKey[i*N:], pk[i*N:(i+1)*N], 0, params.w-1, &addr)
+	privKey := h.expandSeed()
+
+	// Initialise list of chain lengths for full chains
+	lengths := make([]uint8, params.l)
+	for i := range lengths {
+		lengths[i] = params.w - 1
 	}
+
+	adrs := opts.Address
+	pubKey = make([]byte, params.l*N)
+	h.computeChains(numRoutines, privKey, pubKey, lengths, &adrs, params, false)
 
 	return
 }
@@ -46,64 +46,58 @@ func Sign(msg, seed, pubSeed []byte, opts Opts) (sig []byte, err error) {
 		return
 	}
 
-	h, err := newHasher(seed, pubSeed, opts)
+	numRoutines := opts.routines()
+	h, err := newHasher(seed, pubSeed, opts, numRoutines)
 	if err != nil {
 		return
 	}
 
 	privKey := h.expandSeed()
-	lengths := h.baseW(msg, h.params.l1)
-	scratch := make([]byte, 64)
+	lengths := h.baseW(msg, params.l1)
 
 	csum := h.checksum(lengths)
 	lengths = append(lengths, csum...)
 
+	adrs := opts.Address
 	sig = make([]byte, params.l*N)
-	addr := opts.Address
-	for i := 0; i < params.l; i++ {
-		addr.setChain(uint32(i))
-		h.chain(scratch, privKey[i*N:], sig[i*N:(i+1)*N], 0, lengths[i], &addr)
-	}
+	h.computeChains(numRoutines, privKey, sig, lengths, &adrs, params, false)
 
 	return
 }
 
-// PublicKeyFromSig generates a public key from the given signature.
-func PublicKeyFromSig(sig, msg, pubSeed []byte, opts Opts) (pk []byte, err error) {
+// PublicKeyFromSig generates a public key from the given signature
+func PublicKeyFromSig(sig, msg, pubSeed []byte, opts Opts) (pubKey []byte, err error) {
 	params, err := opts.Mode.params()
 	if err != nil {
 		return
 	}
 
-	h, err := newHasher(nil, pubSeed, opts)
+	numRoutines := opts.routines()
+	h, err := newHasher(nil, pubSeed, opts, numRoutines)
 	if err != nil {
 		return
 	}
 
 	lengths := h.baseW(msg, h.params.l1)
-	scratch := make([]byte, 64)
 
 	csum := h.checksum(lengths)
 	lengths = append(lengths, csum...)
 
-	pk = make([]byte, params.l*N)
-	addr := opts.Address
-	for i := 0; i < params.l; i++ {
-		addr.setChain(uint32(i))
-		h.chain(scratch, sig[i*N:], pk[i*N:(i+1)*N], lengths[i], params.w-1-lengths[i], &addr)
-	}
+	adrs := opts.Address
+	pubKey = make([]byte, params.l*N)
+	h.computeChains(numRoutines, sig, pubKey, lengths, &adrs, params, true)
 
 	return
 }
 
 // Verify checks whether the signature is correct for the given message.
-func Verify(pk, sig, msg, pubSeed []byte, opts Opts) (bool, error) {
-	sig, err := PublicKeyFromSig(sig, msg, pubSeed, opts)
-	if err != nil {
-		return false, err
+func Verify(pk, sig, msg, pubSeed []byte, opts Opts) (valid bool, err error) {
+	if sig, err = PublicKeyFromSig(sig, msg, pubSeed, opts); err != nil {
+		return
 	}
 
 	// use subtle.ConstantTimeCompare instead of bytes.Equal to avoid timing
 	// attacks.
-	return subtle.ConstantTimeCompare(pk, sig) == 1, nil
+	valid = subtle.ConstantTimeCompare(pk, sig) == 1
+	return
 }
