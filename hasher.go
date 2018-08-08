@@ -183,3 +183,49 @@ func (h *hasher) checksum(msg []uint8) []uint8 {
 
 	return h.baseW(csumBytes, l2)
 }
+
+// Distributes the chains that must be computed between numRoutine goroutines.
+//
+// When fromSig is true, in contains a signature and out must be a public key;
+// in this case the routines must complete the signature chains so they use
+// lengths as start indices. If fromSig is false, we are either computing a
+// public key from a private key, or a signature from a private key, so the
+// routines use lengths as the amount of iterations to perform.
+func (h *hasher) computeChains(numRoutines int, in, out []byte, lengths []uint8, adrs *Address, p params, fromSig bool) {
+	chainsPerRoutine := (p.l-1)/numRoutines + 1
+
+	// Initialise scratch pad
+	scratch := make([]byte, numRoutines*64)
+
+	done := make(chan struct{}, numRoutines)
+
+	for i := 0; i < numRoutines; i++ {
+		// NOTE: address is passed by value here, since this creates a new
+		// reference.
+		go func(nr int, scratch []byte, adrs Address) {
+			firstChain := nr * chainsPerRoutine
+			lastChain := firstChain + chainsPerRoutine - 1
+
+			// Make sure the last routine ends at the right chain
+			if lastChain >= p.l {
+				lastChain = p.l - 1
+			}
+
+			// Compute the hash chains
+			for j := firstChain; j <= lastChain; j++ {
+				adrs.setChain(uint32(j))
+				if fromSig {
+					h.chain(nr, scratch, in[j*N:(j+1)*N], out[j*N:(j+1)*N], lengths[j], p.w-1-lengths[j], &adrs)
+				} else {
+					h.chain(nr, scratch, in[j*N:(j+1)*N], out[j*N:(j+1)*N], 0, lengths[j], &adrs)
+				}
+			}
+
+			done <- struct{}{}
+		}(i, scratch[i*64:(i+1)*64], *adrs)
+	}
+
+	for i := 0; i < numRoutines; i++ {
+		<-done
+	}
+}
