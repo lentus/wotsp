@@ -19,29 +19,31 @@ go get -u https://github.com/lentus/wotsp
 
 ## Performance
 The benchmarks below were obtained using a laptop with an Intel(R) Core(TM) 
-i5-6300HQ CPU (4 cores @ 899.964 MHz, ```go test -bench . -benchtime 4s```). 
+i5-6300HQ CPU (4 cores @ 899.964 MHz, ```go test -bench . -benchtime 8s```). 
 
 ```
-BenchmarkGenPublicKey-4     	    5000	   1156789 ns/op	    5440 B/op	      11 allocs/op
-BenchmarkSign-4             	   10000	    563155 ns/op	    5635 B/op	      14 allocs/op
-BenchmarkPkFromSig-4        	   10000	    597232 ns/op	    3171 B/op	      11 allocs/op
-BenchmarkW4GenPublicKey-4   	   10000	    494899 ns/op	   10560 B/op	      11 allocs/op
-BenchmarkW4Sign-4           	   20000	    264257 ns/op	   10949 B/op	      14 allocs/op
-BenchmarkW4PkFromSig-4      	   30000	    233671 ns/op	    5925 B/op	      11 allocs/op
+BenchmarkGenPublicKey-4               	   10000	   1235117 ns/op	    5664 B/op	      15 allocs/op
+BenchmarkSign-4                       	   20000	    623708 ns/op	    5779 B/op	      17 allocs/op
+BenchmarkPkFromSig-4                  	   20000	    632719 ns/op	    3315 B/op	      14 allocs/op
+BenchmarkW4GenPublicKey-4             	   20000	    556049 ns/op	   10848 B/op	      15 allocs/op
+BenchmarkW4Sign-4                     	   50000	    296485 ns/op	   11093 B/op	      17 allocs/op
+BenchmarkW4PkFromSig-4                	   50000	    265646 ns/op	    6069 B/op	      14 allocs/op
 ```
 
-The branch *concurrent* contains a more optimized version that divides all hash 
-chain computations over all available CPU cores (polled with *GOMAXPROCS*). The 
-more cores are available, the higher the performance. The benchmarks below were 
-obtained on the same system as those above.
+This implementation also supports concurrent hash chains computations. The 
+number of used goroutines can be set by setting the ```Concurrent``` variable 
+in the Opts struct to a number greater than 0. If it is less than 0, the number 
+of goroutines is automatically determined using 
+```min(runtime.GOMAXPROCS, runtime.NumCPU)```. By default (if it is 0) one 
+goroutine is used. The below benchmarks were obtained using 4 goroutines. 
 
 ```
-BenchmarkGenPublicKey-4     	   10000	    416891 ns/op	    6370 B/op	      21 allocs/op
-BenchmarkSign-4             	   20000	    270267 ns/op	    6483 B/op	      23 allocs/op
-BenchmarkPkFromSig-4        	   20000	    250070 ns/op	    4019 B/op	      20 allocs/op
-BenchmarkW4GenPublicKey-4   	   30000	    235407 ns/op	   11552 B/op	      21 allocs/op
-BenchmarkW4Sign-4           	   30000	    163759 ns/op	   11797 B/op	      23 allocs/op
-BenchmarkW4PkFromSig-4      	   50000	    110329 ns/op	    6773 B/op	      20 allocs/op
+BenchmarkConcurrentGenPublicKey-4     	   30000	    429400 ns/op	    6448 B/op	      21 allocs/op
+BenchmarkConcurrentSign-4             	   30000	    469624 ns/op	    6563 B/op	      23 allocs/op
+BenchmarkConcurrentPkFromSig-4        	   50000	    273350 ns/op	    4099 B/op	      20 allocs/op
+BenchmarkConcurrentW4GenPublicKey-4   	   50000	    253189 ns/op	   11632 B/op	      21 allocs/op
+BenchmarkConcurrentW4Sign-4           	  100000	    155405 ns/op	   11877 B/op	      23 allocs/op
+BenchmarkConcurrentW4PkFromSig-4      	  100000	    119764 ns/op	    6853 B/op	      20 allocs/op
 ```  
 
 ## References

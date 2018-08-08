@@ -5,7 +5,7 @@ import (
 	"runtime"
 )
 
-// Opts groups the parameters required for WOTSP operations. It implements
+// Opts groups the parameters required for W-OTS+ operations. It implements
 // crypto.SignerOpts.
 type Opts struct {
 	Mode    Mode
@@ -23,13 +23,13 @@ type Opts struct {
 // Opts should implement crypto.SignerOpts
 var _ crypto.SignerOpts = Opts{}
 
-// WOTS uses SHA256 as its internal hash function, so HashFunc will always
-// return crypto.SHA256.
+// HashFunc will always return crypto.SHA256 as W-OTS+ uses SHA256 as its
+// internal hash function.
 func (Opts) HashFunc() crypto.Hash {
 	return crypto.SHA256
 }
 
-// routines returns the amount of simultanious goroutines to use for WOTS
+// routines returns the amount of simultaneous goroutines to use for WOTS
 // operations, based on Opts.Concurrency.
 func (o Opts) routines() int {
 	if o.Concurrency == 0 {

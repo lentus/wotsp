@@ -11,7 +11,7 @@ import (
 // noerr is a helper that triggers t.Fatal[f] if the error is non-nil.
 func noerr(t *testing.T, err error) {
 	if err != nil {
-		t.Fatalf("error occured: [%s]", err.Error())
+		t.Fatalf("error occurred: [%s]", err.Error())
 	}
 }
 

@@ -1,7 +1,13 @@
 /*
 
 Package wotsp implements WOTSP-SHA2_256 as documented in RFC 8391
-(https://datatracker.ietf.org/doc/rfc8391/)
+(https://datatracker.ietf.org/doc/rfc8391/).
+
+W-OTS+ is a one-time hash-based signature scheme that is most commonly used in
+a larger scheme such as XMSS or SPHINCS. As a W-OTS+ private key/private seed
+can only be used once securely, W-OTS+ should not be used directly to create
+signatures in most situations. This package is thus meant primarily to be used
+in larger structures such as SPHINCS.
 
 */
 package wotsp
