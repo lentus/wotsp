@@ -3,6 +3,7 @@ package wotsp
 import (
 	"bytes"
 	"crypto/rand"
+	"fmt"
 	"testing"
 
 	"github.com/lentus/wotsp/testdata"
@@ -148,152 +149,65 @@ func TestW4(t *testing.T) {
 	}
 }
 
-func BenchmarkGenPublicKey(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode: W16,
-	}
-
-	for i := 0; i < b.N; i++ {
-		GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
+func BenchmarkWOTSP(b *testing.B) {
+	for _, mode := range []Mode{W4, W16} {
+		runBenches(b, mode)
 	}
 }
 
-func BenchmarkSign(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode: W16,
+// runBenches runs the set of main benchmarks
+func runBenches(b *testing.B, mode Mode) {
+	// test setup
+	var signature []byte
+	switch mode {
+	case W4:
+		signature = testdata.SignatureW4
+	default:
+		signature = testdata.Signature
 	}
 
-	for i := 0; i < b.N; i++ {
-		Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
-	}
-}
+	// create opts
+	var opts Opts
+	opts.Address = Address{}
+	opts.Mode = mode
+	opts.Concurrency = -1
 
-func BenchmarkPkFromSig(b *testing.B) {
-	b.ReportAllocs()
+	var maxRoutines = opts.routines()
 
-	opts := Opts{
-		Mode: W16,
-	}
+	// for each level of concurrency, run the benchmarks on this set of options.
+	for i := 1; i <= maxRoutines; i++ {
+		opts.Concurrency = i
 
-	for i := 0; i < b.N; i++ {
-		PublicKeyFromSig(testdata.Signature, testdata.Message, testdata.PubSeed, opts)
-	}
-}
-
-func BenchmarkW4GenPublicKey(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode: W4,
+		b.Run(fmt.Sprintf("GenPublicKey-%s-%d", opts.Mode, i),
+			func(b *testing.B) {
+				b.ReportAllocs()
+				for i := 0; i < b.N; i++ {
+					GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
+				}
+			})
 	}
 
-	for i := 0; i < b.N; i++ {
-		GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
-	}
-}
+	for i := 1; i <= maxRoutines; i++ {
+		opts.Concurrency = i
 
-func BenchmarkW4Sign(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode: W4,
-	}
-
-	for i := 0; i < b.N; i++ {
-		Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
-	}
-}
-
-func BenchmarkW4PkFromSig(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode: W4,
+		b.Run(fmt.Sprintf("Sign-%s-%d", opts.Mode, i),
+			func(b *testing.B) {
+				b.ReportAllocs()
+				for i := 0; i < b.N; i++ {
+					Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
+				}
+			})
 	}
 
-	for i := 0; i < b.N; i++ {
-		PublicKeyFromSig(testdata.SignatureW4, testdata.Message, testdata.PubSeed, opts)
-	}
-}
+	for i := 1; i <= maxRoutines; i++ {
+		opts.Concurrency = i
 
-func BenchmarkConcurrentGenPublicKey(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode:        W16,
-		Concurrency: -1,
-	}
-
-	for i := 0; i < b.N; i++ {
-		GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
-	}
-}
-
-func BenchmarkConcurrentSign(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode:        W16,
-		Concurrency: -1,
-	}
-
-	for i := 0; i < b.N; i++ {
-		Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
-	}
-}
-
-func BenchmarkConcurrentPkFromSig(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode:        W16,
-		Concurrency: -1,
-	}
-
-	for i := 0; i < b.N; i++ {
-		PublicKeyFromSig(testdata.Signature, testdata.Message, testdata.PubSeed, opts)
-	}
-}
-
-func BenchmarkConcurrentW4GenPublicKey(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode:        W4,
-		Concurrency: -1,
-	}
-
-	for i := 0; i < b.N; i++ {
-		GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
-	}
-}
-
-func BenchmarkConcurrentW4Sign(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode:        W4,
-		Concurrency: -1,
-	}
-
-	for i := 0; i < b.N; i++ {
-		Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
-	}
-}
-
-func BenchmarkConcurrentW4PkFromSig(b *testing.B) {
-	b.ReportAllocs()
-
-	opts := Opts{
-		Mode:        W4,
-		Concurrency: -1,
-	}
-
-	for i := 0; i < b.N; i++ {
-		PublicKeyFromSig(testdata.SignatureW4, testdata.Message, testdata.PubSeed, opts)
+		b.Run(fmt.Sprintf("PublicKeyFromSig-%s-%d", opts.Mode, i),
+			func(b *testing.B) {
+				b.ReportAllocs()
+				for i := 0; i < b.N; i++ {
+					PublicKeyFromSig(signature, testdata.Message, testdata.PubSeed, opts)
+				}
+			})
 	}
 }
