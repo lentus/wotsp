@@ -7,6 +7,11 @@ import (
 	"testing"
 
 	"github.com/lentus/wotsp/testdata"
+
+	// ensure our crypto is available. This is part of the tests, but not of the
+	// library itself, to avoid including more packages than the library's user
+	// will actually need.
+	_ "crypto/sha256"
 )
 
 // noerr is a helper that triggers t.Fatal[f] if the error is non-nil.
