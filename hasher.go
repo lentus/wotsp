@@ -1,7 +1,6 @@
 package wotsp
 
 import (
-	"crypto/sha256"
 	"encoding/binary"
 	"hash"
 	"reflect"
@@ -35,6 +34,11 @@ type hasher struct {
 }
 
 func newHasher(privSeed, pubSeed []byte, opts Opts, nrRoutines int) (h *hasher, err error) {
+	chash, err := opts.hash()
+	if err != nil {
+		return
+	}
+
 	h = new(hasher)
 	h.hasher = make([]hash.Hash, nrRoutines)
 	h.hasherVal = make([]reflect.Value, nrRoutines)
@@ -44,14 +48,14 @@ func newHasher(privSeed, pubSeed []byte, opts Opts, nrRoutines int) (h *hasher, 
 	}
 
 	for i := 0; i < nrRoutines; i++ {
-		h.hasher[i] = sha256.New()
+		h.hasher[i] = chash.New()
 		h.hasherVal[i] = reflect.ValueOf(h.hasher[i]).Elem()
 	}
 
 	padding := make([]byte, N)
 
 	// While padding is all zero, precompute hashF
-	hashHashF := sha256.New()
+	hashHashF := chash.New()
 	hashHashF.Write(padding)
 	h.precompHashF = reflect.ValueOf(hashHashF).Elem()
 
@@ -60,14 +64,14 @@ func newHasher(privSeed, pubSeed []byte, opts Opts, nrRoutines int) (h *hasher, 
 
 	if privSeed != nil {
 		// Precompute prf with private seed (not used in PkFromSig)
-		hashPrfSk := sha256.New()
+		hashPrfSk := chash.New()
 		hashPrfSk.Write(padding)
 		hashPrfSk.Write(privSeed)
 		h.precompPrfPrivSeed = reflect.ValueOf(hashPrfSk).Elem()
 	}
 
 	// Precompute prf with public seed
-	hashPrfPub := sha256.New()
+	hashPrfPub := chash.New()
 	hashPrfPub.Write(padding)
 	hashPrfPub.Write(pubSeed)
 	h.precompPrfPubSeed = reflect.ValueOf(hashPrfPub).Elem()

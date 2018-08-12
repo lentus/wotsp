@@ -2,7 +2,17 @@ package wotsp
 
 import (
 	"crypto"
+	"fmt"
 	"runtime"
+)
+
+var (
+	canPrecompute = map[crypto.Hash]bool{
+		crypto.SHA256:      true,
+		crypto.SHA512_256:  true,
+		crypto.BLAKE2b_256: true,
+		crypto.BLAKE2s_256: true,
+	}
 )
 
 // Opts groups the parameters required for W-OTS+ operations. It implements
@@ -18,15 +28,34 @@ type Opts struct {
 	//  n < 0: automatically determine the number of goroutines based on
 	//         runtime.NumCPU or runtime.GOMAXPROX(-1), whichever is lower.
 	Concurrency int
+
+	// Hash specifies the specific hash function to use. For a hash function to
+	// be accepted by the implementation, it needs to have a digest of 256 bits.
+	//
+	// Currently, the following values are supported:
+	//	crypto.SHA256
+	//	crypto.SHA512_256
+	//	crypto.BLAKE2b_256
+	//  crypto.BLAKE2s_256
+	//
+	// The default (for crypto.Hash(0)) is SHA256, as per the RFC.
+	crypto.Hash
+
+	// NOTE by embedding Hash we automatically implement crypto.SignerOpts, if
+	// this were ever to become relevant.
 }
 
-// Opts should implement crypto.SignerOpts
-var _ crypto.SignerOpts = Opts{}
+// hash returns the hash function to use for the run of WOTSP.
+func (o Opts) hash() (crypto.Hash, error) {
+	if o.Hash == crypto.Hash(0) {
+		return crypto.SHA256, nil
+	}
 
-// HashFunc will always return crypto.SHA256 as W-OTS+ uses SHA256 as its
-// internal hash function.
-func (Opts) HashFunc() crypto.Hash {
-	return crypto.SHA256
+	if canPrecompute[o.Hash] {
+		return o.Hash, nil
+	}
+
+	return 0, fmt.Errorf("unsupported value for Opts.Hash [%d]", o.Hash)
 }
 
 // routines returns the amount of simultaneous goroutines to use for WOTS
