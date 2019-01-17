@@ -190,9 +190,9 @@ func (h *hasher) checksum(msg []uint8) []uint8 {
 
 // Distributes the chains that must be computed between numRoutine goroutines.
 //
-// When fromSig is true, in contains a signature and out must be a public key;
-// in this case the routines must complete the signature chains so they use
-// lengths as start indices. If fromSig is false, we are either computing a
+// When fromSig is true, 'in' contains a signature and 'out' must be a public
+// key; in this case the routines must complete the signature chains so they
+// use lengths as start indices. If fromSig is false, we are either computing a
 // public key from a private key, or a signature from a private key, so the
 // routines use lengths as the amount of iterations to perform.
 func (h *hasher) computeChains(numRoutines int, in, out []byte, lengths []uint8, adrs *Address, p params, fromSig bool) {
@@ -203,32 +203,44 @@ func (h *hasher) computeChains(numRoutines int, in, out []byte, lengths []uint8,
 
 	done := make(chan struct{}, numRoutines)
 
-	for i := 0; i < numRoutines; i++ {
-		// NOTE: address is passed by value here, since this creates a new
-		// reference.
-		go func(nr int, scratch []byte, adrs Address) {
-			firstChain := nr * chainsPerRoutine
-			lastChain := firstChain + chainsPerRoutine - 1
+	computeChain := func(nr int, scratch []byte, adrs Address) {
+		firstChain := nr * chainsPerRoutine
+		lastChain := firstChain + chainsPerRoutine - 1
 
-			// Make sure the last routine ends at the right chain
-			if lastChain >= p.l {
-				lastChain = p.l - 1
+		// Make sure the last routine ends at the right chain
+		if lastChain >= p.l {
+			lastChain = p.l - 1
+		}
+
+		// Compute the hash chains
+		for chainIdx := firstChain; chainIdx <= lastChain; chainIdx++ {
+			adrs.setChain(uint32(chainIdx))
+
+			input := in[chainIdx*N : (chainIdx+1)*N]
+			output := out[chainIdx*N : (chainIdx+1)*N]
+
+			var start, end uint8
+			if fromSig {
+				start = lengths[chainIdx]
+				end = p.w - 1 - lengths[chainIdx]
+			} else {
+				start = 0
+				end = lengths[chainIdx]
 			}
 
-			// Compute the hash chains
-			for j := firstChain; j <= lastChain; j++ {
-				adrs.setChain(uint32(j))
-				if fromSig {
-					h.chain(nr, scratch, in[j*N:(j+1)*N], out[j*N:(j+1)*N], lengths[j], p.w-1-lengths[j], &adrs)
-				} else {
-					h.chain(nr, scratch, in[j*N:(j+1)*N], out[j*N:(j+1)*N], 0, lengths[j], &adrs)
-				}
-			}
+			h.chain(nr, scratch, input, output, start, end, &adrs)
+		}
 
-			done <- struct{}{}
-		}(i, scratch[i*64:(i+1)*64], *adrs)
+		done <- struct{}{}
 	}
 
+	// Start chain computations
+	for routineIdx := 0; routineIdx < numRoutines; routineIdx++ {
+		// Address is passed by value here to create a new reference
+		go computeChain(routineIdx, scratch[routineIdx*64:(routineIdx+1)*64], *adrs)
+	}
+
+	// Wait for chain computations to complete
 	for i := 0; i < numRoutines; i++ {
 		<-done
 	}
