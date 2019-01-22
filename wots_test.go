@@ -187,7 +187,7 @@ func runBenches(b *testing.B, mode Mode) {
 			func(b *testing.B) {
 				b.ReportAllocs()
 				for i := 0; i < b.N; i++ {
-					GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
+					_, _ = GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
 				}
 			})
 	}
@@ -199,7 +199,7 @@ func runBenches(b *testing.B, mode Mode) {
 			func(b *testing.B) {
 				b.ReportAllocs()
 				for i := 0; i < b.N; i++ {
-					Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
+					_, _ = Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
 				}
 			})
 	}
@@ -211,7 +211,7 @@ func runBenches(b *testing.B, mode Mode) {
 			func(b *testing.B) {
 				b.ReportAllocs()
 				for i := 0; i < b.N; i++ {
-					PublicKeyFromSig(signature, testdata.Message, testdata.PubSeed, opts)
+					_, _ = PublicKeyFromSig(signature, testdata.Message, testdata.PubSeed, opts)
 				}
 			})
 	}

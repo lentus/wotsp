@@ -9,6 +9,10 @@ can only be used once securely, W-OTS+ should not be used directly to create
 signatures in most situations. This package is thus meant primarily to be used
 in larger structures such as SPHINCS.
 
+Since SHA512_256, BLAKE2b_256 and BLAKE2s_256 work out of the box, they can be
+used as the internal hash function as well by setting Opts.Hash to their
+corresponding crypto.Hash values.
+
 */
 package wotsp
 
@@ -16,7 +20,7 @@ import (
 	"crypto/subtle"
 )
 
-// N is a constant used by wotsp.
+// N is a constant defined as the output length of the used hash function.
 const N = 32
 
 // GenPublicKey computes the public key that corresponds to the expanded seed.

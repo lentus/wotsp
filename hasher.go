@@ -28,53 +28,53 @@ type hasher struct {
 	params params
 
 	// Hash function instances
-	hasher []hash.Hash
-	// Hash digests of hasher
-	hasherVal []reflect.Value
+	hashers []hash.Hash
+	// Hash digests of hashers
+	hasherVals []reflect.Value
 }
 
 func newHasher(privSeed, pubSeed []byte, opts Opts, nrRoutines int) (h *hasher, err error) {
-	chash, err := opts.hash()
+	hashFunc, err := opts.hash()
 	if err != nil {
 		return
 	}
 
 	h = new(hasher)
-	h.hasher = make([]hash.Hash, nrRoutines)
-	h.hasherVal = make([]reflect.Value, nrRoutines)
+	h.hashers = make([]hash.Hash, nrRoutines)
+	h.hasherVals = make([]reflect.Value, nrRoutines)
 
 	if h.params, err = opts.Mode.params(); err != nil {
 		return
 	}
 
 	for i := 0; i < nrRoutines; i++ {
-		h.hasher[i] = chash.New()
-		h.hasherVal[i] = reflect.ValueOf(h.hasher[i]).Elem()
+		h.hashers[i] = hashFunc.New()
+		h.hasherVals[i] = reflect.ValueOf(h.hashers[i]).Elem()
 	}
 
 	padding := make([]byte, N)
 
 	// While padding is all zero, precompute hashF
-	hashHashF := chash.New()
-	hashHashF.Write(padding)
-	h.precompHashF = reflect.ValueOf(hashHashF).Elem()
+	precompHashF := hashFunc.New()
+	precompHashF.Write(padding)
+	h.precompHashF = reflect.ValueOf(precompHashF).Elem()
 
 	// Set padding for prf
 	binary.BigEndian.PutUint16(padding[N-2:], uint16(3))
 
 	if privSeed != nil {
 		// Precompute prf with private seed (not used in PkFromSig)
-		hashPrfSk := chash.New()
-		hashPrfSk.Write(padding)
-		hashPrfSk.Write(privSeed)
-		h.precompPrfPrivSeed = reflect.ValueOf(hashPrfSk).Elem()
+		precompPrfPrivSeed := hashFunc.New()
+		precompPrfPrivSeed.Write(padding)
+		precompPrfPrivSeed.Write(privSeed)
+		h.precompPrfPrivSeed = reflect.ValueOf(precompPrfPrivSeed).Elem()
 	}
 
 	// Precompute prf with public seed
-	hashPrfPub := chash.New()
-	hashPrfPub.Write(padding)
-	hashPrfPub.Write(pubSeed)
-	h.precompPrfPubSeed = reflect.ValueOf(hashPrfPub).Elem()
+	precompPrfPubSeed := hashFunc.New()
+	precompPrfPubSeed.Write(padding)
+	precompPrfPubSeed.Write(pubSeed)
+	h.precompPrfPubSeed = reflect.ValueOf(precompPrfPubSeed).Elem()
 
 	return
 }
@@ -84,22 +84,22 @@ func newHasher(privSeed, pubSeed []byte, opts Opts, nrRoutines int) (h *hasher, 
 //
 
 func (h *hasher) hashF(routineNr int, key, inout []byte) {
-	h.hasherVal[routineNr].Set(h.precompHashF)
-	h.hasher[routineNr].Write(key)
-	h.hasher[routineNr].Write(inout)
-	h.hasher[routineNr].Sum(inout[:0])
+	h.hasherVals[routineNr].Set(h.precompHashF)
+	h.hashers[routineNr].Write(key)
+	h.hashers[routineNr].Write(inout)
+	h.hashers[routineNr].Sum(inout[:0])
 }
 
 func (h *hasher) prfPubSeed(routineNr int, addr *Address, out []byte) {
-	h.hasherVal[routineNr].Set(h.precompPrfPubSeed)
-	h.hasher[routineNr].Write(addr.data[:])
-	h.hasher[routineNr].Sum(out[:0]) // Must make sure that out's capacity is >= 32 bytes!
+	h.hasherVals[routineNr].Set(h.precompPrfPubSeed)
+	h.hashers[routineNr].Write(addr.data[:])
+	h.hashers[routineNr].Sum(out[:0]) // Must make sure that out's capacity is >= 32 bytes!
 }
 
 func (h *hasher) prfPrivSeed(routineNr int, ctr []byte, out []byte) {
-	h.hasherVal[routineNr].Set(h.precompPrfPrivSeed)
-	h.hasher[routineNr].Write(ctr)
-	h.hasher[routineNr].Sum(out[:0]) // Must make sure that out's capacity is >= 32 bytes!
+	h.hasherVals[routineNr].Set(h.precompPrfPrivSeed)
+	h.hashers[routineNr].Write(ctr)
+	h.hashers[routineNr].Sum(out[:0]) // Must make sure that out's capacity is >= 32 bytes!
 }
 
 // Computes the base-16 representation of a binary input.

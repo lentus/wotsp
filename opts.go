@@ -76,11 +76,3 @@ func (o Opts) routines() int {
 	}
 	return procs
 }
-
-// params is an internal struct that defines required parameters in WOTS. The
-// parameters are derived from a Mode.
-type params struct {
-	w         uint8
-	logW      uint
-	l1, l2, l int
-}

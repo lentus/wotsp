@@ -4,6 +4,14 @@ import (
 	"fmt"
 )
 
+// params is an internal struct that defines required parameters in WOTS. The
+// parameters are derived from a Mode.
+type params struct {
+	w         uint8
+	logW      uint
+	l1, l2, l int
+}
+
 // Mode constants specify internal parameters according to the given mode of
 // operation. The available parameter sets include w = 4 and w = 16. The
 // default, which is used when no explicit mode is chosen, is w = 16. This
