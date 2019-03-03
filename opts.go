@@ -45,7 +45,7 @@ type Opts struct {
 	// this were ever to become relevant.
 }
 
-// hash returns the hash function to use for the run of WOTSP.
+// hash returns the hash function to use for the run of W-OTS+.
 func (o Opts) hash() (crypto.Hash, error) {
 	if o.Hash == crypto.Hash(0) {
 		return crypto.SHA256, nil
@@ -58,7 +58,7 @@ func (o Opts) hash() (crypto.Hash, error) {
 	return 0, fmt.Errorf("unsupported value for Opts.Hash [%d]", o.Hash)
 }
 
-// routines returns the amount of simultaneous goroutines to use for WOTS
+// routines returns the amount of simultaneous goroutines to use for W-OTS+
 // operations, based on Opts.Concurrency.
 func (o Opts) routines() int {
 	if o.Concurrency == 0 {

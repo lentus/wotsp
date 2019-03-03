@@ -1,6 +1,6 @@
 package wotsp
 
-// constants for WOTPS signatures for both W4 and W16 modes.
+// constants for W-OTS+ signatures for both W4, W16 and W256 modes.
 const (
 	W4PublicKeyBytes = 4256        // size of public key
 	W4SecretKeyBytes = W4SeedBytes // size of the secret key, which is the seed
@@ -15,4 +15,11 @@ const (
 	W16SeedBytes      = 32
 	W16PubSeedBytes   = 32
 	W16AddressBytes   = 32
+
+	W256PublicKeyBytes = 1088
+	W256SecretKeyBytes = W256SeedBytes
+	W256Bytes          = 1088
+	W256SeedBytes      = 32
+	W256PubSeedBytes   = 32
+	W256AddressBytes   = 32
 )
