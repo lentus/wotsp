@@ -7,7 +7,7 @@ import (
 // params is an internal struct that defines required parameters in WOTS. The
 // parameters are derived from a Mode.
 type params struct {
-	w         uint8
+	w         uint
 	logW      uint
 	l1, l2, l int
 }
@@ -30,6 +30,9 @@ const (
 
 	// W4 indicates the parameter set of WOTSP where w = 4.
 	W4
+
+	// W256 indicates the parameter set of WOTSP where w = 256.
+	W256
 )
 
 // params construct a modeParams instance based on the operating Mode, or an
@@ -46,8 +49,13 @@ func (m Mode) params() (p params, err error) {
 		p.logW = 4
 		p.l1 = 64
 		p.l2 = 3
+	case W256:
+		p.w = 256
+		p.logW = 8
+		p.l1 = 32
+		p.l2 = 2
 	default:
-		err = fmt.Errorf("invalid mode %s, must be either wotsp.W4 or wotsp.W16", m)
+		err = fmt.Errorf("invalid mode %s, must be either wotsp.W4, wotsp.W16 or wotsp.W256", m)
 		return
 	}
 
@@ -62,6 +70,8 @@ func (m Mode) String() string {
 		return "W4"
 	case W16:
 		return "W16"
+	case W256:
+		return "W256"
 	default:
 		return fmt.Sprintf("<invalid %d>", m)
 	}

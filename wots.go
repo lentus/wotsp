@@ -38,7 +38,7 @@ func GenPublicKey(seed, pubSeed []byte, opts Opts) (pubKey []byte, err error) {
 	// Initialise list of chain lengths for full chains
 	lengths := make([]uint8, params.l)
 	for i := range lengths {
-		lengths[i] = params.w - 1
+		lengths[i] = uint8(params.w - 1)
 	}
 
 	adrs := opts.Address

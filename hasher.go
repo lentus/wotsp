@@ -138,9 +138,7 @@ func (h *hasher) baseW(x []byte, outlen int) []uint8 {
 func (h *hasher) chain(routineNr int, scratch, in, out []byte, start, steps uint8, adrs *Address) {
 	copy(out, in)
 
-	w := h.params.w
-
-	for i := start; i < start+steps && i < w; i++ {
+	for i := start; i < start+steps; i++ {
 		adrs.setHash(uint32(i))
 
 		adrs.setKeyAndMask(0)
@@ -176,7 +174,7 @@ func (h *hasher) checksum(msg []uint8) []uint8 {
 
 	csum := uint32(0)
 	for i := 0; i < l1; i++ {
-		csum += uint32(w - 1 - msg[i])
+		csum += uint32(uint8(w-1) - msg[i])
 	}
 	csum <<= 8 - ((uint(l2) * logW) % 8)
 
@@ -222,7 +220,7 @@ func (h *hasher) computeChains(numRoutines int, in, out []byte, lengths []uint8,
 			var start, end uint8
 			if fromSig {
 				start = lengths[chainIdx]
-				end = p.w - 1 - lengths[chainIdx]
+				end = uint8(p.w-1) - lengths[chainIdx]
 			} else {
 				start = 0
 				end = lengths[chainIdx]

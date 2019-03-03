@@ -47,6 +47,9 @@ func TestAddressToBytes(t *testing.T) {
 	}
 }
 
+// TestGenPublicKey verifies the public key generation algorithm by comparing
+// the resulting public key to a public key obtained from the reference
+// implementation of RFC 8391.
 func TestGenPublicKey(t *testing.T) {
 	var opts Opts
 	opts.Mode = W16 // explicit, in case the default ever changes
@@ -59,6 +62,8 @@ func TestGenPublicKey(t *testing.T) {
 	}
 }
 
+// TestSign verifies the signing algorithm by comparing the resulting signature
+// to a signature obtained from the reference implementation of RFC 8391.
 func TestSign(t *testing.T) {
 	var opts Opts
 	opts.Mode = W16 // explicit, in case the default ever changes
@@ -71,6 +76,9 @@ func TestSign(t *testing.T) {
 	}
 }
 
+// TestPkFromSig verifies the public key from signature algorithm by comparing
+// the resulting public key to a public key obtained from the reference
+// implementation of RFC 8391.
 func TestPkFromSig(t *testing.T) {
 	var opts Opts
 	opts.Mode = W16 // explicit, in case the default ever changes
@@ -95,67 +103,45 @@ func TestVerify(t *testing.T) {
 	}
 }
 
+// TestAll verifies the three signature scheme algorithms for all parameter
+// sets by generating a public key and a signature, and verifying the signature
+// for that public key.
 func TestAll(t *testing.T) {
-	var opts Opts
-	opts.Mode = W16 // explicit, in case the default ever changes
+	for _, mode := range []Mode{W4, W16, W256} {
+		var opts Opts
+		opts.Mode = mode
 
-	seed := make([]byte, 32)
-	_, err := rand.Read(seed)
-	noerr(t, err)
+		seed := make([]byte, 32)
+		_, err := rand.Read(seed)
+		noerr(t, err)
 
-	pubSeed := make([]byte, 32)
-	_, err = rand.Read(pubSeed)
-	noerr(t, err)
+		pubSeed := make([]byte, 32)
+		_, err = rand.Read(pubSeed)
+		noerr(t, err)
 
-	msg := make([]byte, 32)
-	_, err = rand.Read(msg)
-	noerr(t, err)
+		msg := make([]byte, 32)
+		_, err = rand.Read(msg)
+		noerr(t, err)
 
-	pubKey, err := GenPublicKey(seed, pubSeed, opts)
-	noerr(t, err)
+		t.Run(fmt.Sprintf("TestAll-%s", opts.Mode),
+			func(t *testing.T) {
+				pubKey, err := GenPublicKey(seed, pubSeed, opts)
+				noerr(t, err)
 
-	signed, err := Sign(msg, seed, pubSeed, opts)
-	noerr(t, err)
+				signed, err := Sign(msg, seed, pubSeed, opts)
+				noerr(t, err)
 
-	valid, err := Verify(pubKey, signed, msg, pubSeed, opts)
-	noerr(t, err)
-	if !valid {
-		t.Fail()
-	}
-}
-
-func TestW4(t *testing.T) {
-
-	var opts Opts
-	opts.Mode = W4
-
-	seed := make([]byte, 32)
-	_, err := rand.Read(seed)
-	noerr(t, err)
-
-	pubSeed := make([]byte, 32)
-	_, err = rand.Read(pubSeed)
-	noerr(t, err)
-
-	msg := make([]byte, 32)
-	_, err = rand.Read(msg)
-	noerr(t, err)
-
-	pubKey, err := GenPublicKey(seed, pubSeed, opts)
-	noerr(t, err)
-
-	signed, err := Sign(msg, seed, pubSeed, opts)
-	noerr(t, err)
-
-	valid, err := Verify(pubKey, signed, msg, pubSeed, opts)
-	noerr(t, err)
-	if !valid {
-		t.Fail()
+				valid, err := Verify(pubKey, signed, msg, pubSeed, opts)
+				noerr(t, err)
+				if !valid {
+					t.Fail()
+				}
+			})
 	}
 }
 
 func BenchmarkWOTSP(b *testing.B) {
-	for _, mode := range []Mode{W4, W16} {
+	for _, mode := range []Mode{W4, W16, W256} {
 		runBenches(b, mode)
 	}
 }
@@ -167,6 +153,8 @@ func runBenches(b *testing.B, mode Mode) {
 	switch mode {
 	case W4:
 		signature = testdata.SignatureW4
+	case W256:
+		signature = testdata.SignatureW256
 	default:
 		signature = testdata.Signature
 	}
