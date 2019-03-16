@@ -72,6 +72,6 @@ func (m Mode) String() string {
 	case W256:
 		return "W256"
 	default:
-		return fmt.Sprintf("<invalid %d>", m)
+		return fmt.Sprintf("<invalid mode %d>", m)
 	}
 }

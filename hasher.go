@@ -96,7 +96,7 @@ func (h *hasher) prfPrivSeed(routineNr int, ctr []byte, out []byte) {
 	h.hashers[routineNr].Sum(out[:0]) // Must make sure that out's capacity is >= 32 bytes!
 }
 
-// Computes the base-16 representation of a binary input.
+// Computes the base-w representation of a binary input.
 func (h *hasher) baseW(x []byte, outlen int) []uint8 {
 	var total byte
 	in := 0
