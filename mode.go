@@ -37,7 +37,7 @@ const (
 
 // params construct a modeParams instance based on the operating Mode, or an
 // error if the mode is not valid.
-func (m Mode) params() (p params, err error) {
+func (m Mode) params() (p params) {
 	switch m {
 	case W4:
 		p.w = 4
@@ -55,8 +55,7 @@ func (m Mode) params() (p params, err error) {
 		p.l1 = 32
 		p.l2 = 2
 	default:
-		err = fmt.Errorf("invalid mode %s, must be either wotsp.W4, wotsp.W16 or wotsp.W256", m)
-		return
+		panic(fmt.Sprintf("invalid mode %s, must be either wotsp.W4, wotsp.W16 or wotsp.W256", m))
 	}
 
 	p.l = p.l1 + p.l2

@@ -33,19 +33,13 @@ type hasher struct {
 	hasherVals []reflect.Value
 }
 
-func newHasher(privSeed, pubSeed []byte, opts Opts, nrRoutines int) (h *hasher, err error) {
-	hashFunc, err := opts.hash()
-	if err != nil {
-		return
-	}
+func newHasher(privSeed, pubSeed []byte, opts Opts, nrRoutines int) *hasher {
+	hashFunc := opts.hash()
 
-	h = new(hasher)
+	h := new(hasher)
+	h.params = opts.Mode.params()
 	h.hashers = make([]hash.Hash, nrRoutines)
 	h.hasherVals = make([]reflect.Value, nrRoutines)
-
-	if h.params, err = opts.Mode.params(); err != nil {
-		return
-	}
 
 	for i := 0; i < nrRoutines; i++ {
 		h.hashers[i] = hashFunc.New()
@@ -76,7 +70,7 @@ func newHasher(privSeed, pubSeed []byte, opts Opts, nrRoutines int) (h *hasher, 
 	precompPrfPubSeed.Write(pubSeed)
 	h.precompPrfPubSeed = reflect.ValueOf(precompPrfPubSeed).Elem()
 
-	return
+	return h
 }
 
 //

@@ -46,16 +46,16 @@ type Opts struct {
 }
 
 // hash returns the hash function to use for the run of W-OTS+.
-func (o Opts) hash() (crypto.Hash, error) {
+func (o Opts) hash() crypto.Hash {
 	if o.Hash == crypto.Hash(0) {
-		return crypto.SHA256, nil
+		return crypto.SHA256
 	}
 
 	if canPrecompute[o.Hash] {
-		return o.Hash, nil
+		return o.Hash
 	}
 
-	return 0, fmt.Errorf("unsupported value for Opts.Hash [%d]", o.Hash)
+	panic(fmt.Sprintf("unsupported value for Opts.Hash [%d]", o.Hash))
 }
 
 // routines returns the amount of simultaneous goroutines to use for W-OTS+

@@ -54,8 +54,7 @@ func TestGenPublicKey(t *testing.T) {
 	var opts Opts
 	opts.Mode = W16 // explicit, in case the default ever changes
 
-	pubKey, err := GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
-	noerr(t, err)
+	pubKey := GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
 
 	if !bytes.Equal(pubKey, testdata.PubKey) {
 		t.Error("Wrong key")
@@ -68,8 +67,7 @@ func TestSign(t *testing.T) {
 	var opts Opts
 	opts.Mode = W16 // explicit, in case the default ever changes
 
-	signature, err := Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
-	noerr(t, err)
+	signature := Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
 
 	if !bytes.Equal(signature, testdata.Signature) {
 		t.Error("Wrong signature")
@@ -83,8 +81,7 @@ func TestPkFromSig(t *testing.T) {
 	var opts Opts
 	opts.Mode = W16 // explicit, in case the default ever changes
 
-	pubKey, err := PublicKeyFromSig(testdata.Signature, testdata.Message, testdata.PubSeed, opts)
-	noerr(t, err)
+	pubKey := PublicKeyFromSig(testdata.Signature, testdata.Message, testdata.PubSeed, opts)
 
 	if !bytes.Equal(pubKey, testdata.PubKey) {
 		t.Error("Wrong public key")
@@ -95,8 +92,7 @@ func TestVerify(t *testing.T) {
 	var opts Opts
 	opts.Mode = W16 // explicit, in case the default ever changes
 
-	ok, err := Verify(testdata.PubKey, testdata.Signature, testdata.Message, testdata.PubSeed, opts)
-	noerr(t, err)
+	ok := Verify(testdata.PubKey, testdata.Signature, testdata.Message, testdata.PubSeed, opts)
 
 	if !ok {
 		t.Error("Wrong public key")
@@ -125,14 +121,11 @@ func TestAll(t *testing.T) {
 
 		t.Run(fmt.Sprintf("TestAll-%s", opts.Mode),
 			func(t *testing.T) {
-				pubKey, err := GenPublicKey(seed, pubSeed, opts)
-				noerr(t, err)
+				pubKey := GenPublicKey(seed, pubSeed, opts)
 
-				signed, err := Sign(msg, seed, pubSeed, opts)
-				noerr(t, err)
+				signed := Sign(msg, seed, pubSeed, opts)
 
-				valid, err := Verify(pubKey, signed, msg, pubSeed, opts)
-				noerr(t, err)
+				valid := Verify(pubKey, signed, msg, pubSeed, opts)
 				if !valid {
 					t.Fail()
 				}
@@ -175,7 +168,7 @@ func runBenches(b *testing.B, mode Mode) {
 			func(b *testing.B) {
 				b.ReportAllocs()
 				for i := 0; i < b.N; i++ {
-					_, _ = GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
+					_ = GenPublicKey(testdata.Seed, testdata.PubSeed, opts)
 				}
 			})
 	}
@@ -187,7 +180,7 @@ func runBenches(b *testing.B, mode Mode) {
 			func(b *testing.B) {
 				b.ReportAllocs()
 				for i := 0; i < b.N; i++ {
-					_, _ = Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
+					_ = Sign(testdata.Message, testdata.Seed, testdata.PubSeed, opts)
 				}
 			})
 	}
@@ -199,7 +192,7 @@ func runBenches(b *testing.B, mode Mode) {
 			func(b *testing.B) {
 				b.ReportAllocs()
 				for i := 0; i < b.N; i++ {
-					_, _ = PublicKeyFromSig(signature, testdata.Message, testdata.PubSeed, opts)
+					_ = PublicKeyFromSig(signature, testdata.Message, testdata.PubSeed, opts)
 				}
 			})
 	}

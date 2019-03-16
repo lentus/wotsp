@@ -24,14 +24,11 @@ import (
 const N = 32
 
 // GenPublicKey computes the public key that corresponds to the expanded seed.
-func GenPublicKey(seed, pubSeed []byte, opts Opts) (pubKey []byte, err error) {
-	params, err := opts.Mode.params()
-	if err != nil {
-		return
-	}
+func GenPublicKey(seed, pubSeed []byte, opts Opts) (pubKey []byte) {
+	params := opts.Mode.params()
 
 	numRoutines := opts.routines()
-	h, err := newHasher(seed, pubSeed, opts, numRoutines)
+	h := newHasher(seed, pubSeed, opts, numRoutines)
 
 	privKey := h.expandSeed()
 
@@ -50,17 +47,11 @@ func GenPublicKey(seed, pubSeed []byte, opts Opts) (pubKey []byte, err error) {
 
 // Sign generates the signature of msg using the private key generated using the
 // given seed.
-func Sign(msg, seed, pubSeed []byte, opts Opts) (sig []byte, err error) {
-	params, err := opts.Mode.params()
-	if err != nil {
-		return
-	}
+func Sign(msg, seed, pubSeed []byte, opts Opts) (sig []byte) {
+	params := opts.Mode.params()
 
 	numRoutines := opts.routines()
-	h, err := newHasher(seed, pubSeed, opts, numRoutines)
-	if err != nil {
-		return
-	}
+	h := newHasher(seed, pubSeed, opts, numRoutines)
 
 	privKey := h.expandSeed()
 	lengths := h.baseW(msg, params.l1)
@@ -76,17 +67,11 @@ func Sign(msg, seed, pubSeed []byte, opts Opts) (sig []byte, err error) {
 }
 
 // PublicKeyFromSig generates a public key from the given signature
-func PublicKeyFromSig(sig, msg, pubSeed []byte, opts Opts) (pubKey []byte, err error) {
-	params, err := opts.Mode.params()
-	if err != nil {
-		return
-	}
+func PublicKeyFromSig(sig, msg, pubSeed []byte, opts Opts) (pubKey []byte) {
+	params := opts.Mode.params()
 
 	numRoutines := opts.routines()
-	h, err := newHasher(nil, pubSeed, opts, numRoutines)
-	if err != nil {
-		return
-	}
+	h := newHasher(nil, pubSeed, opts, numRoutines)
 
 	lengths := h.baseW(msg, h.params.l1)
 
@@ -101,13 +86,10 @@ func PublicKeyFromSig(sig, msg, pubSeed []byte, opts Opts) (pubKey []byte, err e
 }
 
 // Verify checks whether the signature is correct for the given message.
-func Verify(pk, sig, msg, pubSeed []byte, opts Opts) (valid bool, err error) {
-	if sig, err = PublicKeyFromSig(sig, msg, pubSeed, opts); err != nil {
-		return
-	}
+func Verify(pk, sig, msg, pubSeed []byte, opts Opts) bool {
+	pubKeyFromSig := PublicKeyFromSig(sig, msg, pubSeed, opts)
 
 	// use subtle.ConstantTimeCompare instead of bytes.Equal to avoid timing
 	// attacks.
-	valid = subtle.ConstantTimeCompare(pk, sig) == 1
-	return
+	return subtle.ConstantTimeCompare(pk, pubKeyFromSig) == 1
 }
