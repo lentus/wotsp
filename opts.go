@@ -19,7 +19,7 @@ var (
 // crypto.SignerOpts.
 type Opts struct {
 	Mode    Mode
-	Address Address
+	Address [32]byte
 
 	// Concurrency specifies the amount of goroutines to use for WOTS
 	// operations. Concurrency follows the following logic for n:

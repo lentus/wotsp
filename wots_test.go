@@ -21,32 +21,6 @@ func noerr(t *testing.T, err error) {
 	}
 }
 
-func TestAddressToBytes(t *testing.T) {
-	a := Address{}
-	a.SetLayer(0x10111119)
-	a.SetTree(0x2022222930333339)
-	a.SetType(0x40444449)
-	a.SetOTS(0x50555559)
-	a.setChain(0x60666669)
-	a.setHash(0x70777779)
-	a.setKeyAndMask(0x80888889)
-
-	aBytes := []byte{
-		0x10, 0x11, 0x11, 0x19,
-		0x20, 0x22, 0x22, 0x29,
-		0x30, 0x33, 0x33, 0x39,
-		0x40, 0x44, 0x44, 0x49,
-		0x50, 0x55, 0x55, 0x59,
-		0x60, 0x66, 0x66, 0x69,
-		0x70, 0x77, 0x77, 0x79,
-		0x80, 0x88, 0x88, 0x89,
-	}
-
-	if !bytes.Equal(a.ToBytes(), aBytes) {
-		t.Error("Got ", a.ToBytes(), " wanted ", aBytes)
-	}
-}
-
 // TestGenPublicKey verifies the public key generation algorithm by comparing
 // the resulting public key to a public key obtained from the reference
 // implementation of RFC 8391.
@@ -154,7 +128,6 @@ func runBenches(b *testing.B, mode Mode) {
 
 	// create opts
 	var opts Opts
-	opts.Address = Address{}
 	opts.Mode = mode
 	opts.Concurrency = -1
 

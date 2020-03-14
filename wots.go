@@ -38,9 +38,9 @@ func GenPublicKey(seed, pubSeed []byte, opts Opts) (pubKey []byte) {
 		lengths[i] = uint8(params.w - 1)
 	}
 
-	adrs := opts.Address
+	adrs := &opts.Address
 	pubKey = make([]byte, params.l*N)
-	h.computeChains(numRoutines, privKey, pubKey, lengths, &adrs, params, false)
+	h.computeChains(numRoutines, privKey, pubKey, lengths, adrs, params, false)
 
 	return
 }
@@ -59,9 +59,9 @@ func Sign(msg, seed, pubSeed []byte, opts Opts) (sig []byte) {
 	csum := h.checksum(lengths)
 	lengths = append(lengths, csum...)
 
-	adrs := opts.Address
+	adrs := &opts.Address
 	sig = make([]byte, params.l*N)
-	h.computeChains(numRoutines, privKey, sig, lengths, &adrs, params, false)
+	h.computeChains(numRoutines, privKey, sig, lengths, adrs, params, false)
 
 	return
 }
@@ -78,9 +78,9 @@ func PublicKeyFromSig(sig, msg, pubSeed []byte, opts Opts) (pubKey []byte) {
 	csum := h.checksum(lengths)
 	lengths = append(lengths, csum...)
 
-	adrs := opts.Address
+	adrs := &opts.Address
 	pubKey = make([]byte, params.l*N)
-	h.computeChains(numRoutines, sig, pubKey, lengths, &adrs, params, true)
+	h.computeChains(numRoutines, sig, pubKey, lengths, adrs, params, true)
 
 	return
 }
